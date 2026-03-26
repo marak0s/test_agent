@@ -16,3 +16,6 @@ class ContentItemRepository:
 
     def get(self, content_item_id: str) -> ContentItem | None:
         return self.session.scalar(select(ContentItem).where(ContentItem.id == content_item_id))
+
+    def list_by_status(self, status: str) -> list[ContentItem]:
+        return list(self.session.scalars(select(ContentItem).where(ContentItem.status == status)))

@@ -24,11 +24,43 @@ def test_publish_invariant_requires_approved_approval() -> None:
         ensure_publishable(item, draft, approval)
 
 
-def test_approval_authorization_enforced() -> None:
+def test_approval_authorization_enforced(monkeypatch) -> None:
+    monkeypatch.setattr("onlycuts.app.services.approvals.approval_service.settings.telegram_approver_user_id", 1)
+    monkeypatch.setattr("onlycuts.app.services.approvals.approval_service.settings.telegram_approver_chat_id", 10)
+
     class StubRepo:
+        def find_by_source(self, source_type: str, source_id: str):
+            return None
+
         def create(self, **kwargs):
             return type("A", (), {"status": kwargs["status"]})
 
-    svc = ApprovalService(approvals=StubRepo())
+    class StubDraftRepo:
+        def get(self, _draft_id):
+            return type("D", (), {"id": "d1", "content_item_id": "c1", "review_status": "passed", "body_text": "x", "channel_id": "ch"})
+
+        def create(self, **kwargs):
+            return type("D2", (), {"id": "d2", **kwargs})
+
+    class StubItemRepo:
+        def get(self, _content_id):
+            return type("C", (), {"id": "c1", "current_draft_id": "d1", "channel_id": "ch", "status": "review"})
+
+    class StubPublish:
+        def publish_now(self, content_item_id: str, draft_id: str):
+            return "pub"
+
+        def queue(self, content_item_id: str, draft_id: str, note: str | None = None):
+            return "queue"
+
+    svc = ApprovalService(approvals=StubRepo(), drafts=StubDraftRepo(), content_items=StubItemRepo(), publish_service=StubPublish())
     with pytest.raises(AuthorizationError):
-        svc.record_action(actor_user_id=999, draft_id="d1", action="post")
+        svc.resolve_action(
+            actor_user_id=999,
+            actor_chat_id=10,
+            draft_id="d1",
+            content_item_id="c1",
+            action="post",
+            source_type="callback",
+            source_id="id-1",
+        )

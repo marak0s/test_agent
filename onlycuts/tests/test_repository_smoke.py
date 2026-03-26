@@ -7,7 +7,7 @@ from onlycuts.app.db.models import Channel
 
 def test_repository_smoke_sqlite() -> None:
     engine = create_engine("sqlite+pysqlite:///:memory:")
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine, tables=[Channel.__table__])
     Session = sessionmaker(bind=engine)
     with Session() as session:
         channel = Channel(code="OnlyAiOps", name="OnlyAiOps")

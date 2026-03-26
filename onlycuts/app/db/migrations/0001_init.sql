@@ -34,7 +34,10 @@ CREATE TABLE IF NOT EXISTS approvals (
   actor_telegram_user_id BIGINT NOT NULL,
   action VARCHAR(64) NOT NULL,
   status VARCHAR(32) NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  source_type VARCHAR(32) NOT NULL,
+  source_id VARCHAR(128) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT uq_approvals_source UNIQUE (source_type, source_id)
 );
 CREATE TABLE IF NOT EXISTS publications (
   id UUID PRIMARY KEY,
@@ -43,7 +46,13 @@ CREATE TABLE IF NOT EXISTS publications (
   channel_id UUID NOT NULL REFERENCES channels(id),
   snapshot_text TEXT NOT NULL,
   status VARCHAR(32) NOT NULL,
-  telegram_message_id BIGINT NULL
+  telegram_chat_id BIGINT NULL,
+  telegram_message_id BIGINT NULL,
+  failure_reason VARCHAR(500) NULL,
+  queued_at TIMESTAMPTZ NULL,
+  published_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE TABLE IF NOT EXISTS jobs (
   id UUID PRIMARY KEY,

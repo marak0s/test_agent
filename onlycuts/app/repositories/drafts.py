@@ -23,3 +23,6 @@ class DraftRepository:
 
     def get(self, draft_id: str) -> Draft | None:
         return self.session.scalar(select(Draft).where(Draft.id == draft_id))
+
+    def list_for_content_item(self, content_item_id: str) -> list[Draft]:
+        return list(self.session.scalars(select(Draft).where(Draft.content_item_id == content_item_id).order_by(Draft.version.asc())))

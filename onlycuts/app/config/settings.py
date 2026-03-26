@@ -6,7 +6,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_env: str = Field(default="dev", alias="APP_ENV")
-    database_url: str = Field(default="sqlite+pysqlite:///:memory:", alias="DATABASE_URL")
+    database_url: str = Field(
+        default="postgresql+psycopg://postgres:postgres@localhost:5432/onlycuts",
+        alias="DATABASE_URL",
+    )
     telegram_bot_token: str = Field(default="", alias="TELEGRAM_BOT_TOKEN")
     telegram_approver_user_id: int = Field(default=0, alias="TELEGRAM_APPROVER_USER_ID")
     telegram_approver_chat_id: int = Field(default=0, alias="TELEGRAM_APPROVER_CHAT_ID")

@@ -16,3 +16,6 @@ class TopicRepository:
 
     def list_new(self, channel_id: str) -> list[Topic]:
         return list(self.session.scalars(select(Topic).where(Topic.channel_id == channel_id, Topic.status == "new")))
+
+    def get(self, topic_id: str) -> Topic | None:
+        return self.session.scalar(select(Topic).where(Topic.id == topic_id))

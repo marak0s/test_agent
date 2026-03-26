@@ -1,5 +1,5 @@
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 
-def build_scheduler() -> BackgroundScheduler:
-    return BackgroundScheduler(timezone="UTC")
+def build_scheduler() -> BlockingScheduler:
+    return BlockingScheduler(timezone="UTC")

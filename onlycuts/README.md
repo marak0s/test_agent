@@ -1,31 +1,75 @@
 # onlycuts
 
-Production-minded local-first Python skeleton for a Telegram media pipeline.
-Initial channel target: `OnlyAiOps`.
+Production-minded local-first Python service for the OnlyCuts Telegram pipeline. Current MVP channel: `OnlyAiOps`.
 
-## Purpose
+## What is implemented now
 
-This repo bootstraps a safe, auditable flow:
-1. ingest topic ideas,
-2. plan content items,
-3. generate drafts,
-4. dispatch drafts to one Telegram approver,
-5. handle approval actions (`post`, `regen`, `shorter`, `stronger`, `reject`, `queue`, `help`),
-6. publish approved drafts,
-7. persist state transitions, approvals, artifacts, and publication snapshots.
+- Layered architecture: domain, repositories, services, integrations, jobs, API.
+- Topic ingest -> planning -> draft generation -> review -> approval -> publish skeleton.
+- Telegram approval loop with **inline callbacks** and **reply command parsing**.
+- Single approver enforcement (`TELEGRAM_APPROVER_USER_ID` + `TELEGRAM_APPROVER_CHAT_ID`).
+- Idempotent action handling by source event (`callback_query.id` / derived reply source id).
+- Publish path with explicit queue vs publish-now flow and immutable text snapshot persistence.
+- SQLAlchemy models + SQL migration targeting **Postgres runtime**.
 
-## Architecture
+## Safety model
 
-- `app/domain`: enums, entities, invariants, domain errors.
-- `app/repositories`: SQLAlchemy data access (parameterized ORM, no raw dynamic SQL).
-- `app/services`: workflow logic (ingest/planner/draft/review/approval/publish/analytics).
-- `app/jobs`: thin job wrappers + `JobRun` persistence.
-- `app/integrations/telegram`: bot client, approval message format, callback parsing, publisher.
-- `app/security`: sanitization, callback validation, policy stubs, trust boundaries.
-- `app/db`: SQLAlchemy models + initial SQL migration file.
-- `app/api`: `GET /health`, `POST /admin/run-job`, `POST /telegram/callback`.
+1. External text is data only, never executable instructions.
+2. LLM output is proposal material, never truth.
+3. No dynamic SQL formatting; ORM/parameterized access only.
+4. No shell/tool execution from content text.
+5. Approval actor and callback payload are validated.
+6. Publishing requires explicit approval and invariant checks.
+7. Publication payload snapshot is immutable once recorded.
+8. Audit trail kept in approvals/artifacts/publications.
 
-## Setup
+## What is still TODO
+
+- Real Telegram Bot API transport wiring (currently adapter is intentionally lightweight).
+- Real LLM provider calls and stronger factuality/policy checks.
+- Natural language queue scheduling resolution (`queue tomorrow 10:00` currently stored as note).
+- Retry/backoff strategies and richer analytics snapshots.
+- Alembic runtime env/revision flow (schema SQL file already present).
+
+## Environment variables
+
+Copy `.env.example` to `.env` and configure:
+
+- `DATABASE_URL` (Postgres, default `postgresql+psycopg://postgres:postgres@localhost:5432/onlycuts`)
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_APPROVER_USER_ID`
+- `TELEGRAM_APPROVER_CHAT_ID`
+- `TELEGRAM_PUBLISH_CHAT_ID`
+- `DEFAULT_CHANNEL_CODE`
+- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`
+- `APP_ENV`, `LOG_LEVEL`
+
+## API endpoints
+
+- `GET /health`
+- `POST /admin/run-job`
+- `POST /telegram/callback`
+
+`POST /telegram/callback` accepts either:
+- callback payload (`callback_query`) for inline buttons, or
+- message payload (`message`) for reply commands.
+
+## Approver commands
+
+Supported actions:
+- `post`
+- `regen`
+- `regen stronger`
+- `shorter`
+- `stronger`
+- `reject`
+- `queue`
+- `queue tomorrow 10:00` (note captured; scheduling TODO)
+- `help`
+
+Reply commands must be sent as a reply to the original approval message (contains `RefDraft` and `RefContent`).
+
+## Run locally
 
 ```bash
 cd onlycuts
@@ -35,51 +79,27 @@ pip install -e '.[dev]'
 cp .env.example .env
 ```
 
-## Environment variables
-
-See `.env.example` for required values:
-- `APP_ENV`, `DATABASE_URL`
-- Telegram: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_APPROVER_USER_ID`, `TELEGRAM_APPROVER_CHAT_ID`, `TELEGRAM_PUBLISH_CHAT_ID`
-- Channel: `DEFAULT_CHANNEL_CODE`
-- LLM keys: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`
-- `LOG_LEVEL`
-
-## Database migration
-
-Initial SQL migration: `app/db/migrations/0001_init.sql`.
-
-Apply with your standard Postgres migration process (Alembic wiring is intentionally minimal in v1 and can be expanded).
-
-## Run API
+Run API:
 
 ```bash
 uvicorn onlycuts.app.main:app --reload
 ```
 
-## Run scheduler
+Run scheduler (stays alive until signal):
 
 ```bash
 python scripts/run_scheduler.py
 ```
 
-## Manual ingest
+Manual ingest:
 
 ```bash
 python scripts/manual_ingest.py --channel OnlyAiOps --topic "Idea 1" --topic "Idea 2"
 ```
 
-## Implemented vs deferred
+## Verify approval loop locally
 
-Implemented in this scaffold:
-- Domain statuses and core publish invariants.
-- SQLAlchemy models for channels/topics/content_items/drafts/approvals/publications/jobs/artifacts.
-- Service stubs with real typed interfaces and artifact persistence.
-- Telegram approval message + callback validation primitives.
-- Basic tests for domain/publish/auth/callback/repository smoke.
-
-Deferred (explicit TODOs):
-- Full provider API integrations for OpenAI/Anthropic/Gemini.
-- Full alembic env/revision automation.
-- Rich review/policy/compliance checks.
-- Queue scheduling and publication retry orchestration.
-- `topic_sources` and `metrics_snapshots` tables.
+1. Insert/create a channel, topic, content item, and reviewed draft (`review_status=passed`) in DB.
+2. Send approval dispatch message (or craft callback/message payload).
+3. Call `POST /telegram/callback` with an authorized user/chat.
+4. Confirm approval + publication records and content/topic status transitions in DB.
