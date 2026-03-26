@@ -3,6 +3,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Application settings.
+
+    Runtime expectation: Postgres via DATABASE_URL.
+    Tests may override with TEST_DATABASE_URL in test harnesses.
+    """
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_env: str = Field(default="dev", alias="APP_ENV")
@@ -10,6 +16,8 @@ class Settings(BaseSettings):
         default="postgresql+psycopg://postgres:postgres@localhost:5432/onlycuts",
         alias="DATABASE_URL",
     )
+    test_database_url: str | None = Field(default=None, alias="TEST_DATABASE_URL")
+
     telegram_bot_token: str = Field(default="", alias="TELEGRAM_BOT_TOKEN")
     telegram_approver_user_id: int = Field(default=0, alias="TELEGRAM_APPROVER_USER_ID")
     telegram_approver_chat_id: int = Field(default=0, alias="TELEGRAM_APPROVER_CHAT_ID")
