@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     """Application settings.
 
     Runtime expectation: Postgres via DATABASE_URL.
-    Tests may override with TEST_DATABASE_URL in test harnesses.
+    Tests can explicitly override connection via TEST_DATABASE_URL.
     """
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str = Field(default="", alias="ANTHROPIC_API_KEY")
     google_api_key: str = Field(default="", alias="GOOGLE_API_KEY")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    @property
+    def runtime_database_url(self) -> str:
+        """DB URL used by app runtime (always Postgres-oriented)."""
+        return self.database_url
 
 
 settings = Settings()

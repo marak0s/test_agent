@@ -1,10 +1,14 @@
+import logging
 import signal
 
 from onlycuts.app.integrations.scheduler.apscheduler_setup import build_scheduler
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("onlycuts.scheduler")
+
 
 def _heartbeat() -> None:
-    print("[onlycuts] scheduler heartbeat")
+    logger.info("scheduler heartbeat")
 
 
 if __name__ == "__main__":
@@ -12,16 +16,16 @@ if __name__ == "__main__":
     scheduler.add_job(_heartbeat, "interval", seconds=60, id="heartbeat", replace_existing=True)
 
     def _handle_signal(signum, _frame) -> None:
-        print(f"[onlycuts] received signal {signum}; shutting down")
+        logger.info("received signal %s; shutting down scheduler", signum)
         if scheduler.running:
             scheduler.shutdown(wait=False)
 
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
 
-    print("[onlycuts] scheduler started; registered jobs:")
+    logger.info("scheduler started (blocking mode)")
     for job in scheduler.get_jobs():
-        print(f" - {job.id}: {job.trigger}")
+        logger.info("registered job id=%s trigger=%s", job.id, job.trigger)
 
     try:
         scheduler.start()
