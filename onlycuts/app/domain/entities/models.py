@@ -90,15 +90,30 @@ def ensure_publishable(
     draft: DraftEntity,
     approval: ApprovalEntity,
 ) -> None:
-    if content_item.current_draft_id != draft.id:
+    content_current_draft_id = str(content_item.current_draft_id) if content_item.current_draft_id is not None else None
+    draft_id = str(draft.id)
+    approval_draft_id = str(approval.draft_id)
+
+    if content_current_draft_id != draft_id:
         raise InvariantViolation("cannot publish non-current draft")
-    if draft.review_status != DraftReviewStatus.PASSED:
+
+    draft_review_status = draft.review_status
+    if not isinstance(draft_review_status, str):
+        draft_review_status = draft_review_status.value
+    draft_review_status = draft_review_status.lower()
+
+    if draft_review_status != DraftReviewStatus.PASSED.value:
         raise InvariantViolation("draft review must pass before publication")
-    if approval.draft_id != draft.id or approval.status != ApprovalStatus.APPROVED:
+
+    approval_status = approval.status
+    if not isinstance(approval_status, str):
+        approval_status = approval_status.value
+    approval_status = approval_status.lower()
+
+    if approval_draft_id != draft_id or approval_status != ApprovalStatus.APPROVED.value:
         raise InvariantViolation("approval must be approved and reference exact draft")
-    if draft.channel_id != content_item.channel_id:
+
+    if str(draft.channel_id) != str(content_item.channel_id):
         raise InvariantViolation("channel mismatch between draft and content item")
-
-
 def new_id() -> UUID:
     return uuid4()
