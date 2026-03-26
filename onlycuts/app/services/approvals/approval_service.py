@@ -76,9 +76,14 @@ class ApprovalService:
         queue_note: str | None = None,
     ) -> ApprovalResolution:
         self._assert_actor(actor_user_id=actor_user_id, actor_chat_id=actor_chat_id)
+
         existing = self.approvals.find_by_source(source_type=source_type, source_id=source_id)
         if existing is not None:
-            return ApprovalResolution(status=existing.status, effect="noop_duplicate", idempotent_replay=True)
+            return ApprovalResolution(
+                status=existing.status,
+                effect="noop_duplicate",
+                idempotent_replay=True,
+            )
 
         item = self.content_items.get(content_item_id)
         draft = self.drafts.get(draft_id)
@@ -100,20 +105,56 @@ class ApprovalService:
             source_id=source_id,
         )
 
+        # Важно: approval должен быть виден publish/queue path в рамках текущей транзакции
+        self.approvals.session.flush()
+
         if action == "post":
-            publication_id = self.publish_service.publish_now(content_item_id=content_item_id, draft_id=draft_id)
-            return ApprovalResolution(status=approval.status, effect="published", publication_id=publication_id)
+            publication_id = self.publish_service.publish_now(
+                content_item_id=content_item_id,
+                draft_id=draft_id,
+            )
+            return ApprovalResolution(
+                status=approval.status,
+                effect="published",
+                publication_id=publication_id,
+            )
+
         if action == "queue":
-            publication_id = self.publish_service.queue(content_item_id=content_item_id, draft_id=draft_id, note=queue_note)
-            return ApprovalResolution(status=approval.status, effect="queued", publication_id=publication_id)
+            publication_id = self.publish_service.queue(
+                content_item_id=content_item_id,
+                draft_id=draft_id,
+                note=queue_note,
+            )
+            return ApprovalResolution(
+                status=approval.status,
+                effect="queued",
+                publication_id=publication_id,
+            )
+
         if action in {"regen", "shorter", "stronger"}:
-            new_draft = self._rewrite_draft(action=action, draft_id=draft_id, content_item_id=content_item_id)
-            return ApprovalResolution(status=approval.status, effect="rewritten", draft_id=str(new_draft.id))
+            new_draft = self._rewrite_draft(
+                action=action,
+                draft_id=draft_id,
+                content_item_id=content_item_id,
+            )
+            return ApprovalResolution(
+                status=approval.status,
+                effect="rewritten",
+                draft_id=str(new_draft.id),
+            )
+
         if action == "reject":
             draft.review_status = "failed"
             item.status = "rejected"
-            return ApprovalResolution(status=approval.status, effect="rejected")
-        return ApprovalResolution(status=approval.status, effect="help")
+            return ApprovalResolution(
+                status=approval.status,
+                effect="rejected",
+            )
+
+        return ApprovalResolution(
+            status=approval.status,
+            effect="help",
+        )
 
     def _assert_actor(self, actor_user_id: int, actor_chat_id: int) -> None:
         if actor_user_id != settings.telegram_approver_user_id:
@@ -130,6 +171,7 @@ class ApprovalService:
             raise InvariantViolation("only current draft can be rewritten")
 
         draft.review_status = "superseded"
+
         if action == "regen":
             new_text = draft.body_text + "\n\n[Regenerated for another pass]"
         elif action == "shorter":
