@@ -20,6 +20,7 @@ def build_approval_message(
         f"Goal: {goal}\n\n"
         f"{body_text}{summary}\n\n"
         f"Actions: {', '.join(ACTIONS)}\n"
+        f"Reply with one command above to approve/rewrite.\n"
         f"RefDraft: {draft_id}\n"
         f"RefContent: {content_item_id}"
     )

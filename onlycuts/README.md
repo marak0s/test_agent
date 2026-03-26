@@ -6,7 +6,7 @@ Production-minded local-first Python service for the OnlyCuts Telegram pipeline.
 
 - Layered architecture: domain, repositories, services, integrations, jobs, API.
 - Topic ingest -> planning -> draft generation -> review -> approval -> publish skeleton.
-- Telegram approval loop with **inline callbacks** and **reply command parsing**.
+- Telegram approval loop with **inline callbacks** and **reply commands** routed through the same approval service gate.
 - Single approver enforcement (`TELEGRAM_APPROVER_USER_ID` + `TELEGRAM_APPROVER_CHAT_ID`).
 - Idempotent action handling by source event (`callback_query.id` / derived reply source id).
 - Publish path with explicit queue vs publish-now flow and immutable text snapshot persistence.
@@ -51,7 +51,7 @@ Copy `.env.example` to `.env` and configure:
 - `POST /telegram/callback`
 
 `POST /telegram/callback` accepts either:
-- callback payload (`callback_query`) for inline buttons, or
+- callback payload (flat `callback_data` + actor ids, or nested `callback_query`) for inline button actions, or
 - message payload (`message`) for reply commands.
 
 ## Approver commands
@@ -67,7 +67,11 @@ Supported actions:
 - `queue tomorrow 10:00` (note captured; scheduling TODO)
 - `help`
 
-Reply commands must be sent as a reply to the original approval message (contains `RefDraft` and `RefContent`).
+Reply commands must be sent as a reply to the original approval message, which includes machine-readable refs:
+- `RefDraft: <draft_id>`
+- `RefContent: <content_item_id>`
+
+Supported reply commands in v1: `post`, `regen`, `shorter`, `stronger`, `reject`, `queue`, `help` (plus optional `queue ...` note text).
 
 ## Run locally
 

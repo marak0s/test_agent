@@ -42,6 +42,28 @@ class ApprovalService:
         self.content_items = content_items
         self.publish_service = publish_service
 
+    def resolve_reply_command(
+        self,
+        actor_user_id: int,
+        actor_chat_id: int,
+        draft_id: str,
+        content_item_id: str,
+        action: str,
+        source_id: str,
+        queue_note: str | None = None,
+    ) -> ApprovalResolution:
+        """Reply command adapter that reuses core action resolution path."""
+        return self.resolve_action(
+            actor_user_id=actor_user_id,
+            actor_chat_id=actor_chat_id,
+            draft_id=draft_id,
+            content_item_id=content_item_id,
+            action=action,
+            source_type="reply_command",
+            source_id=source_id,
+            queue_note=queue_note,
+        )
+
     def resolve_action(
         self,
         actor_user_id: int,
