@@ -24,7 +24,7 @@ class TopicPlannerService:
                 business_value_score=0.75,
                 concise_brief=prompt,
             )
-            self.content_items.create(channel_id=topic.channel_id, topic_id=topic.id, goal=output.angle, status=ContentStatus.PLANNED.value)
+            self.content_items.get_or_create(channel_id=topic.channel_id, topic_id=topic.id, goal=output.angle, status=ContentStatus.PLANNED.value)
             topic.status = TopicStatus.PLANNED.value
             self.artifacts.create(kind="planner_output", ref_id=str(topic.id), payload=output.model_dump())
             planned += 1

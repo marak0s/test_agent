@@ -6,6 +6,7 @@ Production-minded local-first Python service for the OnlyCuts Telegram pipeline.
 
 - Layered architecture: domain, repositories, services, integrations, jobs, API.
 - Topic ingest -> planning -> draft generation -> review -> approval -> publish skeleton.
+- Topic fan-out service to create per-channel content items (e.g. RU + EN) without duplicates.
 - Telegram approval loop with **inline callbacks** and **reply commands** routed through the same approval service gate.
 - Single approver enforcement (`TELEGRAM_APPROVER_USER_ID` + `TELEGRAM_APPROVER_CHAT_ID`).
 - Idempotent action handling by source event (`callback_query.id` / derived reply source id).
@@ -30,7 +31,7 @@ Production-minded local-first Python service for the OnlyCuts Telegram pipeline.
 - Natural language queue scheduling resolution (`queue tomorrow 10:00` currently stored as note).
 - Retry/backoff strategies and richer analytics snapshots.
 - Full cron scheduling of the full operator cycle job (currently manual trigger/script).
-- Automatic RU<->EN fan-out/translation is not implemented yet.
+- Automatic RU<->EN fan-out translation quality is still basic/context-driven (no advanced translation intelligence yet).
 - Alembic runtime env/revision flow (schema SQL file already present).
 
 
@@ -94,8 +95,9 @@ Supported reply commands in v1: `post`, `regen`, `shorter`, `stronger`, `reject`
 ## Operator flow (manual MVP)
 
 1. Ingest topics: `python scripts/manual_ingest.py --channel OnlyAiOps --topic "..."`
-2. Run planner + draft + review jobs using your existing scripts/service wiring.
-3. Run one-command operator cycle (planner -> draft -> review -> dispatch):
+2. Optional fan-out of one topic to multiple channels:
+   - `python scripts/run_topic_fanout.py --topic-id <topic_uuid> --channel only_ai_ops_ru --channel only_ai_ops_en`
+3. Run one-command operator cycle (planner -> draft -> review -> dispatch) per channel:
    - `python scripts/run_operator_cycle.py --channel only_ai_ops_en`
 4. Approver acts from Telegram using inline buttons or reply commands.
 5. `ApprovalService` resolves action and publishes/rewrites accordingly.
@@ -120,6 +122,13 @@ Run one-command operator cycle:
 
 ```bash
 python scripts/run_operator_cycle.py --channel only_ai_ops_en
+```
+
+
+Fan out one topic into RU + EN tracks:
+
+```bash
+python scripts/run_topic_fanout.py --topic-id <topic_uuid> --channel only_ai_ops_ru --channel only_ai_ops_en
 ```
 
 Alternative API trigger:

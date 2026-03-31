@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS content_items (
   status VARCHAR(32) NOT NULL,
   current_draft_id UUID NULL
 );
+ALTER TABLE content_items ADD CONSTRAINT uq_content_items_topic_channel UNIQUE (topic_id, channel_id);
+
 CREATE TABLE IF NOT EXISTS drafts (
   id UUID PRIMARY KEY,
   content_item_id UUID NOT NULL REFERENCES content_items(id),

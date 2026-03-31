@@ -19,3 +19,14 @@ class ContentItemRepository:
 
     def list_by_status(self, status: str) -> list[ContentItem]:
         return list(self.session.scalars(select(ContentItem).where(ContentItem.status == status)))
+
+    def get_by_topic_channel(self, topic_id: str, channel_id: str) -> ContentItem | None:
+        return self.session.scalar(
+            select(ContentItem).where(ContentItem.topic_id == topic_id, ContentItem.channel_id == channel_id)
+        )
+
+    def get_or_create(self, channel_id: str, topic_id: str, goal: str, status: str) -> tuple[ContentItem, bool]:
+        existing = self.get_by_topic_channel(topic_id=topic_id, channel_id=channel_id)
+        if existing is not None:
+            return existing, False
+        return self.create(channel_id=channel_id, topic_id=topic_id, goal=goal, status=status), True

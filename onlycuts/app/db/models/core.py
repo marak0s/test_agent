@@ -34,6 +34,8 @@ class Topic(Base):
 
 class ContentItem(Base):
     __tablename__ = "content_items"
+    __table_args__ = (UniqueConstraint("topic_id", "channel_id", name="uq_content_items_topic_channel"),)
+
     id: Mapped[str] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     channel_id: Mapped[str] = mapped_column(ForeignKey("channels.id"), nullable=False)
     topic_id: Mapped[str] = mapped_column(ForeignKey("topics.id"), nullable=False)

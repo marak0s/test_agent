@@ -6,3 +6,5 @@
 - Prefer boring/simple explicit code over clever abstractions.
 - Add/maintain tests for domain invariants and publish safety checks.
 - Keep per-channel Telegram routing explicit; avoid hardcoded global chat/user routing when channel config exists.
+
+- Avoid duplicate topic->channel content item creation.

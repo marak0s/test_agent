@@ -26,7 +26,7 @@ def operator_cycle_job(session: Session, channel_code: str) -> dict:
         content_items=content_items,
         drafts=drafts,
         planner=TopicPlannerService(topics=topics, content_items=content_items, artifacts=artifacts),
-        drafting=DraftGenerationService(content_items=content_items, drafts=drafts, artifacts=artifacts),
+        drafting=DraftGenerationService(content_items=content_items, drafts=drafts, artifacts=artifacts, channels=channels),
         review=DraftReviewService(drafts=drafts, artifacts=artifacts),
         dispatch=ApprovalDispatchService(
             bot=TelegramBotClient(),
