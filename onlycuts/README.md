@@ -29,6 +29,7 @@ Production-minded local-first Python service for the OnlyCuts Telegram pipeline.
 - Real LLM provider calls and stronger factuality/policy checks.
 - Natural language queue scheduling resolution (`queue tomorrow 10:00` currently stored as note).
 - Retry/backoff strategies and richer analytics snapshots.
+- Full cron scheduling of the full operator cycle job (currently manual trigger/script).
 - Alembic runtime env/revision flow (schema SQL file already present).
 
 ## Environment variables
@@ -78,8 +79,8 @@ Supported reply commands in v1: `post`, `regen`, `shorter`, `stronger`, `reject`
 
 1. Ingest topics: `python scripts/manual_ingest.py --channel OnlyAiOps --topic "..."`
 2. Run planner + draft + review jobs using your existing scripts/service wiring.
-3. Dispatch reviewed drafts to approver chat via API:
-   - `POST /admin/run-job` with `{ "job_name": "approval_dispatch" }`
+3. Run one-command operator cycle (planner -> draft -> review -> dispatch):
+   - `python scripts/run_operator_cycle.py --channel OnlyAiOps`
 4. Approver acts from Telegram using inline buttons or reply commands.
 5. `ApprovalService` resolves action and publishes/rewrites accordingly.
 
@@ -99,7 +100,19 @@ Run API:
 uvicorn onlycuts.app.main:app --reload
 ```
 
-Dispatch reviewed drafts to approver chat:
+Run one-command operator cycle:
+
+```bash
+python scripts/run_operator_cycle.py --channel OnlyAiOps
+```
+
+Alternative API trigger:
+
+```bash
+curl -X POST http://localhost:8000/admin/run-job -H "content-type: application/json" -d '{"job_name":"operator_cycle","channel_code":"OnlyAiOps"}'
+```
+
+Dispatch-only trigger (if planner/draft/review already ran):
 
 ```bash
 curl -X POST http://localhost:8000/admin/run-job -H "content-type: application/json" -d '{"job_name":"approval_dispatch"}'
