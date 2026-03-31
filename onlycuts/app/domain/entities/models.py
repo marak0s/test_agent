@@ -115,5 +115,7 @@ def ensure_publishable(
 
     if str(draft.channel_id) != str(content_item.channel_id):
         raise InvariantViolation("channel mismatch between draft and content item")
+
+
 def new_id() -> UUID:
     return uuid4()

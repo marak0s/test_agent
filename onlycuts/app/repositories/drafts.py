@@ -26,3 +26,7 @@ class DraftRepository:
 
     def list_for_content_item(self, content_item_id: str) -> list[Draft]:
         return list(self.session.scalars(select(Draft).where(Draft.content_item_id == content_item_id).order_by(Draft.version.asc())))
+
+
+    def list_by_review_status(self, review_status: str) -> list[Draft]:
+        return list(self.session.scalars(select(Draft).where(Draft.review_status == review_status)))

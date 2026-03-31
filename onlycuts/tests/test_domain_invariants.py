@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -53,7 +54,7 @@ def test_approval_authorization_enforced(monkeypatch) -> None:
         def queue(self, content_item_id: str, draft_id: str, note: str | None = None):
             return "queue"
 
-    svc = ApprovalService(approvals=StubRepo(), drafts=StubDraftRepo(), content_items=StubItemRepo(), publish_service=StubPublish())
+    svc = ApprovalService(approvals=StubRepo(), drafts=StubDraftRepo(), content_items=StubItemRepo(), channels=SimpleNamespace(get=lambda _id: SimpleNamespace(approver_telegram_user_id=1, approver_telegram_chat_id=10)), publish_service=StubPublish())
     with pytest.raises(AuthorizationError):
         svc.resolve_action(
             actor_user_id=999,

@@ -3,7 +3,13 @@
 CREATE TABLE IF NOT EXISTS channels (
   id UUID PRIMARY KEY,
   code VARCHAR(64) UNIQUE NOT NULL,
-  name VARCHAR(255) NOT NULL
+  name VARCHAR(255) NOT NULL,
+  language VARCHAR(16) NOT NULL DEFAULT 'en',
+  locale VARCHAR(32) NOT NULL DEFAULT 'en_US',
+  approver_telegram_user_id BIGINT NULL,
+  approver_telegram_chat_id BIGINT NULL,
+  publish_telegram_chat_id BIGINT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 CREATE TABLE IF NOT EXISTS topics (
   id UUID PRIMARY KEY,
@@ -20,6 +26,8 @@ CREATE TABLE IF NOT EXISTS content_items (
   status VARCHAR(32) NOT NULL,
   current_draft_id UUID NULL
 );
+ALTER TABLE content_items ADD CONSTRAINT uq_content_items_topic_channel UNIQUE (topic_id, channel_id);
+
 CREATE TABLE IF NOT EXISTS drafts (
   id UUID PRIMARY KEY,
   content_item_id UUID NOT NULL REFERENCES content_items(id),
