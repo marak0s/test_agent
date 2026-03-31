@@ -73,6 +73,16 @@ Reply commands must be sent as a reply to the original approval message, which i
 
 Supported reply commands in v1: `post`, `regen`, `shorter`, `stronger`, `reject`, `queue`, `help` (plus optional `queue ...` note text).
 
+
+## Operator flow (manual MVP)
+
+1. Ingest topics: `python scripts/manual_ingest.py --channel OnlyAiOps --topic "..."`
+2. Run planner + draft + review jobs using your existing scripts/service wiring.
+3. Dispatch reviewed drafts to approver chat via API:
+   - `POST /admin/run-job` with `{ "job_name": "approval_dispatch" }`
+4. Approver acts from Telegram using inline buttons or reply commands.
+5. `ApprovalService` resolves action and publishes/rewrites accordingly.
+
 ## Run locally
 
 ```bash
@@ -87,6 +97,12 @@ Run API:
 
 ```bash
 uvicorn onlycuts.app.main:app --reload
+```
+
+Dispatch reviewed drafts to approver chat:
+
+```bash
+curl -X POST http://localhost:8000/admin/run-job -H "content-type: application/json" -d '{"job_name":"approval_dispatch"}'
 ```
 
 Run scheduler (stays alive until signal):
