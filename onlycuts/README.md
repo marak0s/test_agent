@@ -31,7 +31,7 @@ Production-minded local-first Python service for the OnlyCuts Telegram pipeline.
 - Natural language queue scheduling resolution (`queue tomorrow 10:00` currently stored as note).
 - Retry/backoff strategies and richer analytics snapshots.
 - Full cron scheduling of the full operator cycle job (currently manual trigger/script).
-- Automatic RU<->EN fan-out translation quality is still basic/context-driven (no advanced translation intelligence yet).
+- Automatic RU<->EN orchestration and strong localization lineage tracking are still TODO (manual localized draft step exists).
 - Alembic runtime env/revision flow (schema SQL file already present).
 
 
@@ -97,10 +97,12 @@ Supported reply commands in v1: `post`, `regen`, `shorter`, `stronger`, `reject`
 1. Ingest topics: `python scripts/manual_ingest.py --channel OnlyAiOps --topic "..."`
 2. Optional fan-out of one topic to multiple channels:
    - `python scripts/run_topic_fanout.py --topic-id <topic_uuid> --channel only_ai_ops_ru --channel only_ai_ops_en`
-3. Run one-command operator cycle (planner -> draft -> review -> dispatch) per channel:
+3. Run one-command operator cycle (planner -> draft -> review -> dispatch) for the source/master channel:
    - `python scripts/run_operator_cycle.py --channel only_ai_ops_en`
-4. Approver acts from Telegram using inline buttons or reply commands.
-5. `ApprovalService` resolves action and publishes/rewrites accordingly.
+4. Localize master draft to target channel content item explicitly:
+   - `python scripts/run_localized_draft.py --source-draft <en_draft_id> --target-content-item <ru_content_item_id>`
+5. Approver acts from Telegram using inline buttons or reply commands (per channel).
+6. `ApprovalService` resolves action and publishes/rewrites accordingly.
 
 ## Run locally
 
@@ -161,3 +163,21 @@ python scripts/manual_ingest.py --channel OnlyAiOps --topic "Idea 1" --topic "Id
 2. Send approval dispatch message (or craft callback/message payload).
 3. Call `POST /telegram/callback` with an authorized user/chat.
 4. Confirm approval + publication records and content/topic status transitions in DB.
+
+## Localized draft generation (explicit master -> target flow)
+
+`run_topic_fanout.py` creates content items per channel. It does **not** guarantee that one channel draft is the textual source for another channel draft.
+
+When you want explicit localization (e.g., EN master draft -> RU draft), use:
+
+```bash
+python scripts/run_localized_draft.py --source-draft <en_draft_id> --target-content-item <ru_content_item_id>
+```
+
+Behavior:
+- Reads source draft text.
+- Uses target channel language/locale as localization constraints.
+- Creates a **new draft** under target content item.
+- Stores a `localized_draft_output` artifact for audit/debug visibility.
+
+This keeps localization explicit and reviewable, while preserving existing approval/publish gates.

@@ -8,3 +8,5 @@
 - Keep per-channel Telegram routing explicit; avoid hardcoded global chat/user routing when channel config exists.
 
 - Avoid duplicate topic->channel content item creation.
+
+- For localization workflows, keep source draft linkage explicit (master -> localized draft); do not invent independent target-channel posts when localization is intended.
