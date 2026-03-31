@@ -29,6 +29,6 @@ def build_approval_message(
 def inline_keyboard(draft_id: str, content_item_id: str) -> dict:
     return {
         "inline_keyboard": [
-            [{"text": a, "callback_data": f"{a}|{draft_id}|{content_item_id}"} for a in ACTIONS if a != "help"]
+            [{"text": a, "callback_data": a} for a in ACTIONS if a != "help"]
         ]
     }

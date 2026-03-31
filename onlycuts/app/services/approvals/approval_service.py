@@ -55,7 +55,6 @@ class ApprovalService:
         source_id: str,
         queue_note: str | None = None,
     ) -> ApprovalResolution:
-        """Reply command adapter that reuses core action resolution path."""
         return self.resolve_action(
             actor_user_id=actor_user_id,
             actor_chat_id=actor_chat_id,
@@ -105,6 +104,9 @@ class ApprovalService:
             source_id=source_id,
         )
 
+        # Make sure the approval record is visible before publish/queue invariants are checked.
+        self.approvals.session.flush()
+
         if action == "post":
             publication_id = self.publish_service.publish_now(content_item_id=content_item_id, draft_id=draft_id)
             return ApprovalResolution(status=approval.status, effect="published", publication_id=publication_id)
@@ -117,12 +119,20 @@ class ApprovalService:
         if action == "reject":
             draft.review_status = "failed"
             item.status = "rejected"
-            return ApprovalResolution(status=approval.status, effect="rejected")
-        return ApprovalResolution(status=approval.status, effect="help")
+            return ApprovalResolution(
+                status=approval.status,
+                effect="rejected",
+            )
+
+        return ApprovalResolution(
+            status=approval.status,
+            effect="help",
+        )
 
     def _assert_actor(self, actor_user_id: int, actor_chat_id: int, channel) -> None:
         expected_user_id = settings.telegram_approver_user_id
         expected_chat_id = settings.telegram_approver_chat_id
+
         if channel is not None:
             if channel.approver_telegram_user_id is not None:
                 expected_user_id = int(channel.approver_telegram_user_id)
