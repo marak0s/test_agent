@@ -4,6 +4,7 @@ from onlycuts.app.config.settings import settings
 from onlycuts.app.domain.enums.statuses import ApprovalStatus
 from onlycuts.app.domain.errors.exceptions import AuthorizationError, InvariantViolation
 from onlycuts.app.repositories.approvals import ApprovalRepository
+from onlycuts.app.repositories.channels import ChannelRepository
 from onlycuts.app.repositories.content_items import ContentItemRepository
 from onlycuts.app.repositories.drafts import DraftRepository
 from onlycuts.app.services.publishing.publish_service import PublishService
@@ -35,11 +36,13 @@ class ApprovalService:
         approvals: ApprovalRepository,
         drafts: DraftRepository,
         content_items: ContentItemRepository,
+        channels: ChannelRepository,
         publish_service: PublishService,
     ):
         self.approvals = approvals
         self.drafts = drafts
         self.content_items = content_items
+        self.channels = channels
         self.publish_service = publish_service
 
     def resolve_reply_command(
@@ -75,7 +78,6 @@ class ApprovalService:
         source_id: str,
         queue_note: str | None = None,
     ) -> ApprovalResolution:
-        self._assert_actor(actor_user_id=actor_user_id, actor_chat_id=actor_chat_id)
         existing = self.approvals.find_by_source(source_type=source_type, source_id=source_id)
         if existing is not None:
             return ApprovalResolution(status=existing.status, effect="noop_duplicate", idempotent_replay=True)
@@ -86,6 +88,9 @@ class ApprovalService:
             raise InvariantViolation("approval target not found")
         if str(draft.content_item_id) != str(item.id):
             raise InvariantViolation("draft/content relation mismatch")
+
+        channel = self.channels.get(str(item.channel_id))
+        self._assert_actor(actor_user_id=actor_user_id, actor_chat_id=actor_chat_id, channel=channel)
 
         status = ACTION_TO_STATUS.get(action)
         if status is None:
@@ -115,10 +120,18 @@ class ApprovalService:
             return ApprovalResolution(status=approval.status, effect="rejected")
         return ApprovalResolution(status=approval.status, effect="help")
 
-    def _assert_actor(self, actor_user_id: int, actor_chat_id: int) -> None:
-        if actor_user_id != settings.telegram_approver_user_id:
+    def _assert_actor(self, actor_user_id: int, actor_chat_id: int, channel) -> None:
+        expected_user_id = settings.telegram_approver_user_id
+        expected_chat_id = settings.telegram_approver_chat_id
+        if channel is not None:
+            if channel.approver_telegram_user_id is not None:
+                expected_user_id = int(channel.approver_telegram_user_id)
+            if channel.approver_telegram_chat_id is not None:
+                expected_chat_id = int(channel.approver_telegram_chat_id)
+
+        if actor_user_id != expected_user_id:
             raise AuthorizationError("only configured approver may take actions")
-        if actor_chat_id != settings.telegram_approver_chat_id:
+        if actor_chat_id != expected_chat_id:
             raise AuthorizationError("actions must come from configured approver chat")
 
     def _rewrite_draft(self, action: str, draft_id: str, content_item_id: str):

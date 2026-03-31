@@ -53,6 +53,11 @@ class StubTopicRepo:
         return SimpleNamespace(title="Topic")
 
 
+class StubChannelRepo:
+    def get(self, _id: str):
+        return SimpleNamespace(code="only_ai_ops_en", approver_telegram_chat_id=777)
+
+
 def test_approval_message_contains_stable_refs() -> None:
     msg = build_approval_message(
         topic_title="Topic",
@@ -68,7 +73,7 @@ def test_approval_message_contains_stable_refs() -> None:
 
 def test_dispatch_pending_is_idempotent_for_existing_artifact() -> None:
     draft = SimpleNamespace(id="draft-1", content_item_id="content-1", body_text="body")
-    item = SimpleNamespace(id="content-1", topic_id="topic-1", current_draft_id="draft-1", status="review", goal="goal")
+    item = SimpleNamespace(id="content-1", topic_id="topic-1", channel_id="ch-1", current_draft_id="draft-1", status="review", goal="goal")
     artifacts = StubArtifacts()
     artifacts.create("approval_dispatch", "draft-1", {"ok": True})
 
@@ -78,15 +83,16 @@ def test_dispatch_pending_is_idempotent_for_existing_artifact() -> None:
         drafts=StubDraftRepo([draft]),
         content_items=StubContentRepo(item),
         topics=StubTopicRepo(),
+        channels=StubChannelRepo(),
     )
 
-    sent = service.dispatch_pending_reviewed()
+    sent = service.dispatch_pending_reviewed(channel_code="only_ai_ops_en")
     assert sent == 0
 
 
 def test_dispatch_pending_sends_once_for_reviewed_current_draft() -> None:
     draft = SimpleNamespace(id="draft-1", content_item_id="content-1", body_text="body")
-    item = SimpleNamespace(id="content-1", topic_id="topic-1", current_draft_id="draft-1", status="review", goal="goal")
+    item = SimpleNamespace(id="content-1", topic_id="topic-1", channel_id="ch-1", current_draft_id="draft-1", status="review", goal="goal")
     bot = StubBot()
     artifacts = StubArtifacts()
 
@@ -96,8 +102,10 @@ def test_dispatch_pending_sends_once_for_reviewed_current_draft() -> None:
         drafts=StubDraftRepo([draft]),
         content_items=StubContentRepo(item),
         topics=StubTopicRepo(),
+        channels=StubChannelRepo(),
     )
 
-    sent = service.dispatch_pending_reviewed()
+    sent = service.dispatch_pending_reviewed(channel_code="only_ai_ops_en")
     assert sent == 1
     assert bot.calls == 1
+    assert artifacts.store[("approval_dispatch", "draft-1")]["chat_id"] == 777

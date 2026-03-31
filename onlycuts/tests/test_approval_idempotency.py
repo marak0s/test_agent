@@ -55,6 +55,7 @@ def test_duplicate_source_is_idempotent(monkeypatch) -> None:
         approvals=StubApprovalRepo(),
         drafts=StubDraftRepo(draft),
         content_items=StubItemRepo(item),
+        channels=SimpleNamespace(get=lambda _id: SimpleNamespace(approver_telegram_user_id=1, approver_telegram_chat_id=10)),
         publish_service=StubPublishService(),
     )
     first = svc.resolve_action(

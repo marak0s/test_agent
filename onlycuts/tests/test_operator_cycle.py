@@ -60,7 +60,8 @@ class StubDispatch:
     def __init__(self, count: int):
         self.count = count
 
-    def dispatch_pending_reviewed(self) -> int:
+    def dispatch_pending_reviewed(self, channel_code: str | None = None) -> int:
+        assert channel_code == "OnlyAiOps"
         return self.count
 
 

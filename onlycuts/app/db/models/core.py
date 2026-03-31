@@ -15,6 +15,12 @@ class Channel(Base):
     id: Mapped[str] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    language: Mapped[str] = mapped_column(String(16), nullable=False, default="en")
+    locale: Mapped[str] = mapped_column(String(32), nullable=False, default="en_US")
+    approver_telegram_user_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    approver_telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    publish_telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
 
 
 class Topic(Base):

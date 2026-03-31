@@ -23,7 +23,7 @@ class RunJobResponse(BaseModel):
 def run_job(request: RunJobRequest) -> RunJobResponse:
     with SessionLocal() as session:
         if request.job_name == "approval_dispatch":
-            output = approval_dispatch_job(session)
+            output = approval_dispatch_job(session, channel_code=request.channel_code)
             return RunJobResponse(accepted=True, output=output)
 
         if request.job_name == "operator_cycle":

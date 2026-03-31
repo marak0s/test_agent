@@ -66,5 +66,5 @@ class OperatorCycleService:
             self.review.review(str(draft.id))
             summary.reviewed += 1
 
-        summary.dispatched = self.dispatch.dispatch_pending_reviewed()
+        summary.dispatched = self.dispatch.dispatch_pending_reviewed(channel_code=channel_code)
         return summary

@@ -34,6 +34,7 @@ def operator_cycle_job(session: Session, channel_code: str) -> dict:
             drafts=drafts,
             content_items=content_items,
             topics=topics,
+            channels=channels,
         ),
     )
 

@@ -30,7 +30,23 @@ Production-minded local-first Python service for the OnlyCuts Telegram pipeline.
 - Natural language queue scheduling resolution (`queue tomorrow 10:00` currently stored as note).
 - Retry/backoff strategies and richer analytics snapshots.
 - Full cron scheduling of the full operator cycle job (currently manual trigger/script).
+- Automatic RU<->EN fan-out/translation is not implemented yet.
 - Alembic runtime env/revision flow (schema SQL file already present).
+
+
+## Multi-channel readiness (RU/EN)
+
+Channels now carry runtime routing fields in DB so each channel can define its own Telegram and language settings:
+- `language`, `locale`
+- `approver_telegram_user_id`, `approver_telegram_chat_id`
+- `publish_telegram_chat_id`
+- `is_active`
+
+Routing behavior:
+- Approval dispatch uses channel approver chat when present.
+- Approval authorization checks channel approver user/chat when present.
+- Publish uses channel publish chat when present.
+- Global env vars remain compatibility defaults when channel fields are null.
 
 ## Environment variables
 
@@ -80,7 +96,7 @@ Supported reply commands in v1: `post`, `regen`, `shorter`, `stronger`, `reject`
 1. Ingest topics: `python scripts/manual_ingest.py --channel OnlyAiOps --topic "..."`
 2. Run planner + draft + review jobs using your existing scripts/service wiring.
 3. Run one-command operator cycle (planner -> draft -> review -> dispatch):
-   - `python scripts/run_operator_cycle.py --channel OnlyAiOps`
+   - `python scripts/run_operator_cycle.py --channel only_ai_ops_en`
 4. Approver acts from Telegram using inline buttons or reply commands.
 5. `ApprovalService` resolves action and publishes/rewrites accordingly.
 
@@ -103,13 +119,13 @@ uvicorn onlycuts.app.main:app --reload
 Run one-command operator cycle:
 
 ```bash
-python scripts/run_operator_cycle.py --channel OnlyAiOps
+python scripts/run_operator_cycle.py --channel only_ai_ops_en
 ```
 
 Alternative API trigger:
 
 ```bash
-curl -X POST http://localhost:8000/admin/run-job -H "content-type: application/json" -d '{"job_name":"operator_cycle","channel_code":"OnlyAiOps"}'
+curl -X POST http://localhost:8000/admin/run-job -H "content-type: application/json" -d '{"job_name":"operator_cycle","channel_code":"only_ai_ops_ru"}'
 ```
 
 Dispatch-only trigger (if planner/draft/review already ran):

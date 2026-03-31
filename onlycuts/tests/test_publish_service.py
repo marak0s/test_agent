@@ -29,13 +29,12 @@ class StubPublisher:
         return self.message_id
 
 
-def test_publish_success_updates_status(monkeypatch) -> None:
-    monkeypatch.setattr("onlycuts.app.services.publishing.publish_service.settings.telegram_publish_chat_id", 100)
-
+def test_publish_success_updates_status() -> None:
     item = SimpleNamespace(id="item-1", topic_id="topic-1", channel_id="c1", current_draft_id="draft-1", status="review")
     draft = SimpleNamespace(id="draft-1", content_item_id="item-1", channel_id="c1", body_text="hello", review_status="passed")
     approval = SimpleNamespace(draft_id="draft-1", status="approved")
     topic = SimpleNamespace(id="topic-1", status="planned")
+    channel = SimpleNamespace(id="c1", publish_telegram_chat_id=555)
 
     service = PublishService(
         content_items=StubRepo({"item-1": item}),
@@ -43,6 +42,7 @@ def test_publish_success_updates_status(monkeypatch) -> None:
         approvals=StubRepo({"draft-1": approval}),
         publications=StubRepo(),
         topics=StubRepo({"topic-1": topic}),
+        channels=StubRepo({"c1": channel}),
         publisher=StubPublisher(message_id=77),
     )
 
@@ -52,9 +52,7 @@ def test_publish_success_updates_status(monkeypatch) -> None:
     assert topic.status == "published"
 
 
-def test_publish_failure_records_reason(monkeypatch) -> None:
-    monkeypatch.setattr("onlycuts.app.services.publishing.publish_service.settings.telegram_publish_chat_id", 100)
-
+def test_publish_failure_records_reason() -> None:
     item = SimpleNamespace(id="item-1", topic_id="topic-1", channel_id="c1", current_draft_id="draft-1", status="review")
     draft = SimpleNamespace(id="draft-1", content_item_id="item-1", channel_id="c1", body_text="hello", review_status="passed")
     approval = SimpleNamespace(draft_id="draft-1", status="approved")
@@ -65,6 +63,7 @@ def test_publish_failure_records_reason(monkeypatch) -> None:
         approvals=StubRepo({"draft-1": approval}),
         publications=StubRepo(),
         topics=StubRepo(),
+        channels=StubRepo({"c1": SimpleNamespace(id="c1", publish_telegram_chat_id=555)}),
         publisher=StubPublisher(message_id=None),
     )
 
